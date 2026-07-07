@@ -1,0 +1,161 @@
+/**
+ * Modern Profile Card React-style Stylesheet for block_user_widget
+ */
+
+.block_user_widget .card-text {
+    padding: 0 !important;
+}
+
+.block_user_widget .uw-card-container {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f8f9fa;
+    padding: 20px 14px;
+    text-align: center;
+    color: #1f2937;
+
+    /* --- TUTAJ USTAWIANIE PROSTOKĄTNEGO KSZTAŁTU --- */
+    max-width: 280px;        /* Ogranicza szerokość – karta będzie wąska (np. między 260px a 300px) */
+    min-height: 500px;       /* Wymusza minimalną wysokość – karta będzie wysoka */
+    margin: 0 auto;          /* Centruje widżet wewnątrz kolumny Moodle, jeśli kolumna jest szersza */
+    
+    /* Dodatkowo: układa elementy wewnątrz karty równomiernie od góry do dołu */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Avatar stylizacja zewnętrzna */
+.block_user_widget .uw-avatar-wrapper {
+    margin-bottom: 16px;
+}
+
+.block_user_widget .uw-avatar-wrapper .uw-avatar-img {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #e0e7ff;
+}
+
+/* Typografia imienia i pól podrzędnych */
+.block_user_widget .uw-user-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 6px 0;
+}
+
+.block_user_widget .uw-profile-sub {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-bottom: 2px;
+}
+
+/* Odznaki statusu (Pills) */
+.block_user_widget .uw-status-badge-container {
+    margin: 14px 0;
+}
+
+.block_user_widget .uw-status-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.block_user_widget .uw-status-ontrack {
+    background-color: #e6f4ea;
+    color: #137333;
+}
+
+.block_user_widget .uw-status-attention {
+    background-color: #fce8e6;
+    color: #c5221f;
+}
+
+.block_user_widget .uw-divider {
+    border: 0;
+    border-top: 1px solid #f3f4f6;
+    margin: 20px 0;
+}
+
+/* Sekcja o mnie */
+.block_user_widget .uw-about-section {
+    text-align: left;
+    margin-bottom: 18px;
+    padding: 0 4px;
+}
+
+.block_user_widget .uw-about-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 6px 0;
+}
+
+.block_user_widget .uw-about-text {
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.5;
+}
+
+/* Przycisk kalendarza */
+.block_user_widget .uw-calendar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+    text-decoration: none;
+    transition: background 0.2s;
+    margin-bottom: 14px;
+}
+
+.block_user_widget .uw-calendar-btn:hover {
+    background: #f9fafb;
+    text-decoration: none;
+}
+
+.block_user_widget .uw-email-line {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 20px;
+}
+
+/* Karta tutora (Opiekuna) */
+.block_user_widget .uw-tutor-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+    background: #a19c9c;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.block_user_widget .uw-tutor-img {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+
+.block_user_widget .uw-tutor-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.block_user_widget .uw-tutor-role {
+    font-size: 11px;
+    color: #6b7280;
+}

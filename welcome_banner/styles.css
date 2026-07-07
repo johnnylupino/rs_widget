@@ -1,0 +1,125 @@
+/**
+ * Modern Dashboard Hero Banner - Unified Light Theme Stylesheet
+ * Aligned perfectly with block_week_widget formatting rules.
+ */
+
+/* Usunięcie domyślnych ramek i paddingów bloku Moodle dla uzyskania płaskiego efektu karty */
+.block_welcome_banner.block {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+.block_welcome_banner .card-body {
+    padding: 0 !important;
+}
+
+/* Główny kontener baneru - Zmiana na jasny styl identyczny z week_widget */
+.block_welcome_banner .wb-banner {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #ffffff; /* Czyste białe tło */
+    border: 1px solid #e5e7eb; /* Identyczna ramka subtelna */
+    border-radius: 16px; /* Identyczny promień zaokrąglenia narożników */
+    padding: 28px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #1f2937; /* Ciemny czytelny tekst */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); /* Modern, lekki cień */
+    gap: 24px;
+}
+
+/* Lewa strona - Teksty i komunikaty */
+.block_welcome_banner .wb-content-left {
+    flex: 1;
+}
+
+.block_welcome_banner .wb-tag {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #4f46e5; /* Elegancki fiolet/indygo jako znacznik kategorii */
+    margin-bottom: 8px;
+}
+
+.block_welcome_banner .wb-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 10px 0;
+    color: #111827; /* Głęboka czerń/grafit */
+    letter-spacing: -0.02em;
+}
+
+.block_welcome_banner .wb-description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #4b5563; /* Stonowany ciemnoszary dla długich opisów */
+    max-width: 90%;
+    margin: 0;
+}
+
+/* Prawa strona - Wykres Pierścieniowy dopasowany do jasnego motywu */
+.block_welcome_banner .wb-chart-right {
+    flex-shrink: 0;
+}
+
+.block_welcome_banner .wb-radial-wrapper {
+    position: relative;
+    width: 110px;
+    height: 110px;
+}
+
+.block_welcome_banner .wb-radial-text-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.block_welcome_banner .wb-percentage {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111827; /* Ciemna czcionka procentowa */
+    line-height: 1;
+}
+
+.block_welcome_banner .wb-label {
+    font-size: 10px;
+    color: #6b7280; /* Szary dopisek 'complete' */
+    margin-top: 3px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+/* Dostosowanie toru SVG do jasnego tła */
+.block_welcome_banner .wb-svg-bg {
+    stroke: #e5e7eb; /* Jasnoszary nieaktywny tor koła */
+}
+
+/* Aktywny łuk postępu koła */
+.block_welcome_banner .wb-svg-progress {
+    stroke: #2563eb; /* Królewski błękit - spójny z linkami nawigacyjnymi w widżetach */
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* RWD - Dostosowanie responsywne dla urządzeń mobilnych */
+@media (max-width: 768px) {
+    .block_welcome_banner .wb-banner {
+        flex-direction: column;
+        text-align: center;
+        padding: 24px;
+    }
+    .block_welcome_banner .wb-description {
+        max-width: 100%;
+    }
+    .block_welcome_banner .wb-content-left {
+        margin-bottom: 16px;
+    }
+}

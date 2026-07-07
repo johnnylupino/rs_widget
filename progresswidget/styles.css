@@ -1,0 +1,415 @@
+/**
+ * Styles for block_progresswidget — modern sleek design.
+ *
+ * All selectors are scoped under .block-progresswidget to avoid
+ * polluting the Moodle theme. CSS custom properties (tokens) are
+ * declared on the root scope so child elements inherit them cleanly.
+ *
+ * Design system:
+ *   Green  #1D9E75  — completed (positive, done)
+ *   Amber  #EF9F27  — in progress (warm, active)
+ *   Grey   #B4B2A9  — not started (neutral, waiting)
+ *
+ * @package    block_progresswidget
+ * @copyright  2024 Your Organisation
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/* ── Design tokens ──────────────────────────────────────────────────── */
+.block-progresswidget {
+    --pw-green:        #1D9E75;
+    --pw-green-light:  #E1F5EE;
+    --pw-green-text:   #0F6E56;
+
+    --pw-amber:        #EF9F27;
+    --pw-amber-light:  #FAEEDA;
+    --pw-amber-text:   #854F0B;
+
+    --pw-grey:         #B4B2A9;
+    --pw-grey-light:   #F1EFE8;
+    --pw-grey-text:    #5F5E5A;
+
+    --pw-track:        rgba(0, 0, 0, .07);
+    --pw-radius:       12px;
+    --pw-gap:          1.0rem;
+
+    --pw-font:         -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --pw-shadow:       0 1px 3px rgba(0, 0, 0, .08);
+    --pw-shadow-lg:    0 4px 12px rgba(0, 0, 0, .12);
+}
+
+@media (prefers-color-scheme: dark) {
+    .block-progresswidget {
+        --pw-track:       rgba(255, 255, 255, .1);
+        --pw-green-light: rgba(29, 158, 117, .2);
+        --pw-amber-light: rgba(239, 159, 39, .2);
+        --pw-grey-light:  rgba(180, 178, 169, .15);
+        --pw-shadow:      0 1px 3px rgba(0, 0, 0, .3);
+        --pw-shadow-lg:   0 4px 12px rgba(0, 0, 0, .4);
+    }
+}
+
+/* ── Kill Moodle's default block chrome ─────────────────────────────── */
+.block-progresswidget .card {
+    background:    var(--color-background-primary, #fff);
+    border:        0.5px solid var(--color-border-tertiary, rgba(0,0,0,.08));
+    border-radius: var(--pw-radius);
+    padding:       var(--pw-gap);
+    box-shadow:    var(--pw-shadow);
+    font-family:   var(--pw-font);
+}
+
+/* Remove Bootstrap card header/footer chrome that Moodle adds */
+.block-progresswidget .card-body { padding: 0; }
+
+/* ── Block header ───────────────────────────────────────────────────── */
+.block-progresswidget .pw-header {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    margin-bottom:   var(--pw-gap);
+    padding-bottom:  var(--pw-gap);
+    border-bottom:   1px solid var(--color-border-tertiary, rgba(0,0,0,.06));
+}
+
+.block-progresswidget .pw-title {
+    font-size:      13px;
+    font-weight:    600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color:          var(--color-text-secondary, #6c757d);
+}
+
+.block-progresswidget .pw-pill {
+    font-size:     11px;
+    font-weight:   600;
+    padding:       4px 12px;
+    border-radius: 6px;
+    background:    var(--pw-green-light);
+    color:         var(--pw-green-text);
+    line-height:   1.6;
+    white-space:   nowrap;
+}
+
+/* ── SVG doughnut chart ─────────────────────────────────────────────── */
+.block-progresswidget .pw-chart-target {
+    display:         flex;
+    justify-content: center;
+    margin-bottom:   var(--pw-gap);
+    padding:         1.5rem 0;
+}
+
+.block-progresswidget .pw-chart-wrap {
+    position:   relative;
+    width:      140px;
+    height:     140px;
+    flex-shrink: 0;
+    filter:     drop-shadow(0 1px 3px rgba(0, 0, 0, .05));
+}
+
+.block-progresswidget .pw-chart-wrap svg {
+    display: block;
+    width:   100%;
+    height:  100%;
+}
+
+/* ── Doughnut centre label ──────────────────────────────────────────── */
+.block-progresswidget .pw-centre {
+    position:       absolute;
+    top:            50%;
+    left:           50%;
+    transform:      translate(-50%, -50%);
+    text-align:     center;
+    pointer-events: none;
+    line-height:    1;
+    z-index:        2;
+}
+
+.block-progresswidget .pw-pct {
+    display:        block;
+    font-size:      2.0rem;
+    font-weight:    700;
+    letter-spacing: -.03em;
+    color:          var(--pw-green);
+    line-height:    1;
+    margin:         0;
+}
+
+.block-progresswidget .pw-sub {
+    display:        block;
+    font-size:      11px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color:          var(--color-text-tertiary, #adb5bd);
+    margin-top:     5px;
+    font-weight:    500;
+}
+
+/* ── Legend ─────────────────────────────────────────────────────────── */
+.block-progresswidget .pw-legend {
+    display:        flex;
+    flex-direction: column;
+    gap:            12px;
+    margin-bottom:  var(--pw-gap);
+    padding:        1rem;
+    background:     var(--pw-track);
+    border-radius:  var(--pw-radius);
+}
+
+.block-progresswidget .pw-legend-row {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             10px;
+}
+
+.block-progresswidget .pw-legend-left {
+    display:     flex;
+    align-items: center;
+    gap:         10px;
+    flex:        1;
+    min-width:   0;
+}
+
+.block-progresswidget .pw-dot {
+    width:         9px;
+    height:        9px;
+    border-radius: 50%;
+    flex-shrink:   0;
+    box-shadow:    var(--pw-shadow);
+}
+
+.block-progresswidget .pw-legend-label {
+    font-size:   13px;
+    font-weight: 500;
+    color:       var(--color-text-secondary, #6c757d);
+    white-space: nowrap;
+}
+
+.block-progresswidget .pw-legend-count {
+    font-size:   13px;
+    font-weight: 600;
+    color:       var(--color-text-primary, #212529);
+    flex-shrink: 0;
+}
+
+.block-progresswidget .pw-legend-count .pw-of {
+    font-weight: 400;
+    color:       var(--color-text-tertiary, #adb5bd);
+    font-size:   12px;
+}
+
+/* Micro bar under each legend item */
+.block-progresswidget .pw-bar-track {
+    height:        3px;
+    background:    var(--color-border-tertiary, rgba(0,0,0,.08));
+    border-radius: 2px;
+    margin-top:    6px;
+    overflow:      hidden;
+    position:      relative;
+}
+
+.block-progresswidget .pw-bar-fill {
+    height:        100%;
+    width:         0;             /* JS animates this to data-width */
+    border-radius: 2px;
+    transition:    width .8s cubic-bezier(.4, 0, .2, 1) .4s;
+    box-shadow:    var(--pw-shadow);
+}
+
+/* ── State-specific dot colors ──────────────────────────────────────── */
+.block-progresswidget .pw-dot-completed {
+    background: var(--pw-green);
+}
+
+.block-progresswidget .pw-dot-inprogress {
+    background: var(--pw-amber);
+}
+
+.block-progresswidget .pw-dot-notstarted {
+    background: var(--pw-grey);
+}
+
+/* ── State-specific bar fill colors ─────────────────────────────────── */
+.block-progresswidget .pw-bar-completed {
+    background: var(--pw-green);
+}
+
+.block-progresswidget .pw-bar-inprogress {
+    background: var(--pw-amber);
+}
+
+.block-progresswidget .pw-bar-notstarted {
+    background: var(--pw-grey);
+}
+
+/* ── Divider ────────────────────────────────────────────────────────── */
+.block-progresswidget .pw-divider {
+    height:        0.5px;
+    background:    var(--color-border-tertiary, rgba(0,0,0,.1));
+    margin-bottom: 1rem;
+}
+
+/* ── Course list ────────────────────────────────────────────────────── */
+.block-progresswidget .pw-courses {
+    display:        flex;
+    flex-direction: column;
+    gap:            8px;
+}
+
+.block-progresswidget .pw-course-row {
+    display:     flex;
+    align-items: center;
+    gap:         10px;
+    padding:     8px;
+    border-radius: 8px;
+    transition:  background-color .2s ease;
+}
+
+.block-progresswidget .pw-course-row:hover {
+    background: var(--color-background-secondary, #f8f9fa);
+}
+
+.block-progresswidget .pw-course-icon {
+    width:           32px;
+    height:          32px;
+    border-radius:   6px;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    flex-shrink:     0;
+    font-weight:     600;
+    font-size:       12px;
+    color:           #fff;
+}
+
+.block-progresswidget .pw-icon-completed {
+    background: var(--pw-green);
+    color:      #fff;
+}
+
+.block-progresswidget .pw-icon-inprogress {
+    background: var(--pw-amber);
+    color:      #fff;
+}
+
+.block-progresswidget .pw-icon-notstarted {
+    background: var(--pw-grey);
+    color:      #fff;
+}
+
+.block-progresswidget .pw-course-icon svg {
+    display: block;
+    width:   16px;
+    height:  16px;
+}
+
+.block-progresswidget .pw-course-info {
+    flex:      1;
+    min-width: 0;
+}
+
+.block-progresswidget .pw-course-name {
+    font-size:     13px;
+    font-weight:   500;
+    color:         var(--color-text-primary, #212529);
+    white-space:   nowrap;
+    overflow:      hidden;
+    text-overflow: ellipsis;
+    line-height:   1.4;
+    margin-bottom: 4px;
+}
+
+.block-progresswidget .pw-course-track {
+    height:        3px;
+    background:    var(--color-border-tertiary, rgba(0,0,0,.08));
+    border-radius: 2px;
+    overflow:      hidden;
+}
+
+.block-progresswidget .pw-course-fill {
+    height:        100%;
+    width:         0;             /* JS animates this to data-width */
+    border-radius: 2px;
+    transition:    width .7s cubic-bezier(.4, 0, .2, 1) .6s;
+    box-shadow:    var(--pw-shadow);
+}
+
+.block-progresswidget .pw-course-badge {
+    font-size:     11px;
+    font-weight:   600;
+    padding:       4px 10px;
+    border-radius: 4px;
+    flex-shrink:   0;
+    line-height:   1.6;
+    white-space:   nowrap;
+}
+
+/* State-specific badge colours */
+.block-progresswidget .pw-badge-completed {
+    background: var(--pw-green-light);
+    color:      var(--pw-green-text);
+}
+
+.block-progresswidget .pw-badge-inprogress {
+    background: var(--pw-amber-light);
+    color:      var(--pw-amber-text);
+}
+
+.block-progresswidget .pw-badge-notstarted {
+    background: var(--color-background-secondary, #f8f9fa);
+    color:      var(--color-text-tertiary, #adb5bd);
+}
+
+/* ── Empty state ────────────────────────────────────────────────────── */
+.block-progresswidget .pw-empty {
+    text-align:     center;
+    padding:        3rem 1.5rem;
+    color:          var(--color-text-secondary, #6c757d);
+    font-size:      14px;
+    line-height:    1.6;
+    border-radius:  var(--pw-radius);
+    background:     var(--pw-track);
+}
+
+/* ── Respect reduced-motion preference ──────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .block-progresswidget .pw-bar-fill,
+    .block-progresswidget .pw-course-fill {
+        transition: none;
+        width: attr(data-width) !important;
+    }
+
+    .block-progresswidget .pw-course-row {
+        transition: none;
+    }
+}
+
+/* ── Responsive adjustments ─────────────────────────────────────────── */
+@media (max-width: 576px) {
+    .block-progresswidget {
+        --pw-gap: 1rem;
+    }
+
+    .block-progresswidget .pw-chart-wrap {
+        width:  180px;
+        height: 180px;
+    }
+
+    .block-progresswidget .pw-pct {
+        font-size: 2rem;
+    }
+
+    .block-progresswidget .pw-course-row {
+        padding: 6px 4px;
+    }
+
+    .block-progresswidget .pw-course-icon {
+        width:  28px;
+        height: 28px;
+    }
+
+    .block-progresswidget .pw-legend {
+        padding: 0.75rem;
+    }
+}
