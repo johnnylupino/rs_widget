@@ -1,43 +1,45 @@
-# Competency Widget Block for Moodle
+Development Summary Report: competency_widget Refactoring
+This report provides a concise breakdown of the architectural, functional, and performance optimizations applied to the Moodle Competency Widget Block during today's development session. The plugin has been successfully refactored from a basic monolithic script into a modern, production-grade Moodle component.
 
+1. Architectural Evolution & Refactoring
+Separation of Concerns (MVC Pattern): Completely decoupled the backend PHP business logic from the presentation layer. Hardcoded HTML and CSS strings were entirely removed from block_competency_widget.php.
 
-A high-performance, context-aware dashboard block for Moodle that transforms text-heavy competency tracking into an interactive, React-style visual experience. It features a fluid SVG radial progress graph and responsive skill-tracking badges.
+Mustache Templating Engine: Introduced templates/widget_content.mustache to handle the DOM layout natively via Moodle's core rendering engine.
 
----
+External Stylesheet Optimization: Shifted all layout definitions into a standalone styles.css file in the plugin root. This enables browser-side caching and automated minification by Moodle's theme manager.
 
-## Key Features
+2. Functional & Context-Aware Enhancements
+Multi-Pipeline Data Aggregation: Upgraded the data layer to concurrently fetch both site-wide Learning Plans and active Course Enrollments.
 
-* ** Context-Aware Smart Filtering**
-  * **Dashboard Mode:** Automatically aggregates and displays all learning plans and competencies across every course the user is currently enrolled in.
-  * **Course Mode:** Seamlessly detects when it is placed inside a course page and filters the view to show *only* competencies mapped to that specific course.
-* ** Dual-Badge Tracking System**
-  * **Status Badge:** A color-coded indicator displaying **Proficient** (Success Green) or **In Progress** (Warning Yellow).
-  * **Context Badge:** Identifies the exact origin of the competency, dynamically rendering **Learning Plan** or the specific **Course Shortname** (e.g., `MATH-101`).
-* ** Sidebar-Resilient Responsive Layout**
-  * Engineered with defensive CSS Flexbox rules (`min-width: 0`) and relative boundaries. 
-  * Long competency names and course shortnames truncate cleanly via text-overflow ellipses (`...`) to prevent horizontal scrollbars in narrow sidebars, while displaying full titles natively on hover.
-* ** Performance Caching Pipeline**
-  * Leverages an ad-hoc Moodle Universal Cache (MUC) using `MODE_REQUEST`.
-  * Drastically lowers server overhead by caching processed data matrices within the page lifecycle, preventing redundant database queries on multi-block layouts.
-* ** Deadlock-Free Architecture**
-  * Bypasses database cache registration dependencies, allowing safe hot-swapping, installation, and modification without triggering system-wide upgrade blocks or rendering failures.
-* ** Localization Ready**
-  * Stripped of all hardcoded text strings. Fully integrated with Moodle's internationalization engine (`get_string()`) and compliant with placeholder data objects (`{$a->earned} of {$a->total}`).
+Dynamic Context Filtering: Programmed the block to recognize its environment layout:
 
----
+Dashboard Mode: Aggregates and displays all site-wide tracking items.
 
-##  Directory Structure
+Course Mode: Automatically detects the active course page and cleanses the view to isolate only the competencies mapped to that specific classroom context.
 
-```text
-blocks/competency_widget/
-├── block_competency_widget.php    # Core Controller (Data mapping, context routing, and MUC cache injection)
-├── styles.css                     # External optimized stylesheet (Sidebar layouts, animations, and badges)
-├── version.php                    # Plugin release definition and Moodle environment compatibility tracking
-├── lang/
-│   └── en/
-│       └── block_competency_widget.php # English localization strings (Language key mappings)
-├── templates/
-│   └── widget_content.mustache    # HTML Presentation Layer (Isolates layout from PHP logic using Mustache tokens)
-└── amd/
-    └── src/
-        └── init.js                # AMD JavaScript Engine (Asynchronously handles SVG entry animations)
+Deep Deep-Linking: Replaced static text labels with dynamic, context-aware Moodle hyperlinks (moodle_url), routing users directly to their detailed competency profiles or course tracking summaries upon clicking.
+
+3. UI, Layout, & Sidebar Resilience
+Dual-Badge Dashboard Layout: Expanded the item tracking cards to render a cleaner dual-marker interface:
+
+Status Badge: Displays an active state marker using language-string mappings (Proficient or In Progress).
+
+Context Badge: Displays where the skill requirement originates (Learning Plan or the specific Course Shortname).
+
+Sidebar Fluid Resiliency: Resolved a layout defect where long course titles or competency descriptions caused container breakouts and horizontal scrollbars in narrow sidebars.
+
+Ellipsis & Native Tooltips: Implemented defensive CSS Flexbox rules (min-width: 0, flex-shrink: 0) and relative capping definitions (max-width: 75px). Extra-long text strings now truncate gracefully with a trailing ellipsis (...) while retaining full-text readouts natively on mouse-hover via the HTML title attribute.
+
+4. Performance Engineering & Technical Bug Fixes
+Ad-Hoc Request Caching Engine: Resolved a critical Moodle system deadlock exception (The requested cache definition does not exist) by moving away from database-dependent cache configurations. Implemented an in-memory ad-hoc cache using cache::make_from_params() under MODE_REQUEST, reducing database strain across a single page lifecycle without requiring forced version-upgrade hooks.
+
+Defensive Type-Cast Mapping: Fixed a silent execution failure where the block rendered empty despite data existing. Patched the core loop with defensive is_object() mapping checks to correctly catch Moodle API data types (stdClass variations vs. associative arrays).
+
+Internationalization Engine Sync: Replaced remaining hardcoded English text strings with Moodle's global localization method (get_string()), fully aligning the controller logic with the placeholder design configuration inside your lang/en/ translation strings file.
+
+5. Pure CSS SVG Chart Stabilization
+Elimination of JS Race Conditions: Discovered that asynchronous page loading loops on Moodle dashboards caused the progress ring to experience timing dropouts (remaining gray).
+
+Zero-Dependency Approach: Safely removed the legacy AMD JavaScript module layer (amd/src/init.js) entirely. The exact $strokeoffset metric is now injected directly into the SVG container properties from the server side on render.
+
+Hardware-Accelerated Animation: Integrated a lightweight CSS @keyframes animation loop that smoothly transitions the progress ring from 0% up to the exact completion metric instantly upon page mounting.
