@@ -1,0 +1,43 @@
+# Competency Widget Block for Moodle
+
+
+A high-performance, context-aware dashboard block for Moodle that transforms text-heavy competency tracking into an interactive, React-style visual experience. It features a fluid SVG radial progress graph and responsive skill-tracking badges.
+
+---
+
+## Key Features
+
+* ** Context-Aware Smart Filtering**
+  * **Dashboard Mode:** Automatically aggregates and displays all learning plans and competencies across every course the user is currently enrolled in.
+  * **Course Mode:** Seamlessly detects when it is placed inside a course page and filters the view to show *only* competencies mapped to that specific course.
+* ** Dual-Badge Tracking System**
+  * **Status Badge:** A color-coded indicator displaying **Proficient** (Success Green) or **In Progress** (Warning Yellow).
+  * **Context Badge:** Identifies the exact origin of the competency, dynamically rendering **Learning Plan** or the specific **Course Shortname** (e.g., `MATH-101`).
+* ** Sidebar-Resilient Responsive Layout**
+  * Engineered with defensive CSS Flexbox rules (`min-width: 0`) and relative boundaries. 
+  * Long competency names and course shortnames truncate cleanly via text-overflow ellipses (`...`) to prevent horizontal scrollbars in narrow sidebars, while displaying full titles natively on hover.
+* ** Performance Caching Pipeline**
+  * Leverages an ad-hoc Moodle Universal Cache (MUC) using `MODE_REQUEST`.
+  * Drastically lowers server overhead by caching processed data matrices within the page lifecycle, preventing redundant database queries on multi-block layouts.
+* ** Deadlock-Free Architecture**
+  * Bypasses database cache registration dependencies, allowing safe hot-swapping, installation, and modification without triggering system-wide upgrade blocks or rendering failures.
+* ** Localization Ready**
+  * Stripped of all hardcoded text strings. Fully integrated with Moodle's internationalization engine (`get_string()`) and compliant with placeholder data objects (`{$a->earned} of {$a->total}`).
+
+---
+
+##  Directory Structure
+
+```text
+blocks/competency_widget/
+├── block_competency_widget.php    # Core Controller (Data mapping, context routing, and MUC cache injection)
+├── styles.css                     # External optimized stylesheet (Sidebar layouts, animations, and badges)
+├── version.php                    # Plugin release definition and Moodle environment compatibility tracking
+├── lang/
+│   └── en/
+│       └── block_competency_widget.php # English localization strings (Language key mappings)
+├── templates/
+│   └── widget_content.mustache    # HTML Presentation Layer (Isolates layout from PHP logic using Mustache tokens)
+└── amd/
+    └── src/
+        └── init.js                # AMD JavaScript Engine (Asynchronously handles SVG entry animations)

@@ -1,0 +1,33 @@
+{{!
+    @template block_competency_widget/widget_content
+    Template for rendering the React-style competency tracking UI with sidebar optimization.
+}}
+<div class="cw-wrapper" id="{{uniqid}}">
+    <div class="cw-chart-container">
+        <div class="cw-radial-wrapper">
+            <svg width="110" height="110" viewBox="0 0 100 100" style="transform: rotate(-90deg);">
+                <circle class="cw-svg-bg" cx="50" cy="50" r="{{radius}}" stroke-width="8" fill="transparent"/>
+                <circle class="cw-svg-progress" cx="50" cy="50" r="{{radius}}" stroke-width="8" fill="transparent"
+                        stroke-dasharray="{{circumference}}" 
+                        stroke-dashoffset="{{strokeoffset}}"/>
+            </svg>
+            <div class="cw-radial-value">{{percentage}}%</div>
+        </div>
+        <div class="cw-meta">{{metastring}}</div>
+    </div>
+    
+    <div class="cw-list-container">
+        {{#items}}
+            <div class="cw-list-item">
+                <a href="{{url}}" class="cw-item-name" title="{{name}}">{{name}}</a>
+                <div class="cw-badge-group">
+                    <span class="cw-badge {{context_class}}" title="{{context}}">{{context}}</span>
+                    <span class="cw-badge {{status_class}}">{{status_text}}</span>
+                </div>
+            </div>
+        {{/items}}
+        {{^items}}
+            <div class="text-muted text-center" style="font-size:13px;">No tracked competencies found.</div>
+        {{/items}}
+    </div>
+</div>

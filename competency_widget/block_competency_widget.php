@@ -1,27 +1,20 @@
 <?php
 /**
- * Competency Widget Block Execution File.
- * Generates React-style interactive radial graphs and labels tracking skill completion.
+ * Competency Widget Block Controller.
+ * Fully refactored to support Mustache layouts, AMD UI, MUC caching, and deep context awareness.
  */
 
 defined('MOODLE_INTERNAL') || die();
 
 class block_competency_widget extends block_base {
 
-    /**
-     * Component initializer. Sets the visible title.
-     */
     public function init() {
         $this->title = get_string('pluginname', 'block_competency_widget');
     }
 
-    /**
-     * Generates and returns the visual content inside the block container.
-     */
     public function get_content() {
-        global $USER;
+        global $USER, $OUTPUT;
 
-        // If content is already calculated, optimize by returning it directly
         if ($this->content !== null) {
             return $this->content;
         }
@@ -30,173 +23,159 @@ class block_competency_widget extends block_base {
         $this->content->text = '';
         $this->content->footer = '';
 
-        // Verification step: Ensure core tracking framework is enabled system-wide
         if (!get_config('core_competency', 'enabled')) {
             $this->content->text = html_writer::div(get_string('competenciesdisabled', 'core_competency'), 'alert alert-warning');
             return $this->content;
         }
 
+        // Context Awareness & Teacher Previews
         $userid = $USER->id;
-        try {
-            $usercompetencies = \core_competency\user_competency::get_records(['userid' => $userid]);
-        } catch (Exception $e) {
-            $usercompetencies = [];
+        $pagecontext = $this->page->context;
+        if ($pagecontext->contextlevel == CONTEXT_USER) {
+            $userid = $pagecontext->instanceid;
         }
 
-        $totalcompetencies = count($usercompetencies);
-        $earnedcompetencies = 0;
-        $listitemshtml = '';
+        // Performance MUC Cache Pipeline Optimization (Ad-hoc)
+        $cache = cache::make_from_params(cache_store::MODE_REQUEST, 'block_competency_widget', 'competency_metrics');
+        $cachekey = 'user_metrics_' . $userid . '_course_' . $this->page->course->id;
+        $cacheddata = $cache->get($cachekey);
 
-        // Loop through metrics data to build React-like pill elements
-        foreach ($usercompetencies as $uc) {
-            $isproficient = $uc->get('proficiency');
-            if ($isproficient) {
+        if ($cacheddata !== false) {
+            $this->render_widget_ui($cacheddata);
+            return $this->content;
+        }
+
+        $all_tracked_competencies = [];
+        $current_course_id = $this->page->course->id;
+        $is_course_context = ($current_course_id && $current_course_id != SITEID);
+
+        // --- PIPELINE 1: Global Learning Plans ---
+        if (!$is_course_context) {
+            try {
+                $usercompetencies = \core_competency\user_competency::get_records(['userid' => $userid]);
+                foreach ($usercompetencies as $uc) {
+                    try {
+                        $competency = new \core_competency\competency($uc->get('competencyid'));
+                        $compid = $competency->get('id');
+                        
+                        $deeplink = new moodle_url('/competency/user_competency.php', [
+                            'userid' => $userid, 
+                            'competencyid' => $compid
+                        ]);
+
+                        $all_tracked_competencies[$compid . '_lp'] = [
+                            'name' => format_string($competency->get('shortname')),
+                            'proficient' => (bool)$uc->get('proficiency'),
+                            'context' => 'Learning Plan',
+                            'context_class' => 'cw-ctx-lp',
+                            'url' => $deeplink->out(false)
+                        ];
+                    } catch (Exception $e) {
+                        continue;
+                    }
+                }
+            } catch (Exception $e) {}
+        }
+
+        // --- PIPELINE 2: Course Configurations ---
+        try {
+            $courses_to_scan = [];
+            if ($is_course_context) {
+                $courses_to_scan[] = $this->page->course;
+            } else {
+                $courses_to_scan = enrol_get_users_courses($userid, true, 'id, shortname');
+            }
+
+            foreach ($courses_to_scan as $course) {
+                $course_comps = \core_competency\api::list_course_competencies($course->id);
+                foreach ($course_comps as $cc_map) {
+                    // FIXED: Defensive object/array check to prevent data loading dropouts
+                    $competency = is_object($cc_map) ? $cc_map->competency : $cc_map['competency'];
+                    if (!$competency) {
+                        continue;
+                    }
+                    
+                    $compid = $competency->get('id');
+                    $user_course_comp = \core_competency\api::get_user_competency_in_course($course->id, $userid, $compid);
+                    $is_proficient = $user_course_comp ? (bool)$user_course_comp->get('proficiency') : false;
+
+                    $deeplink = new moodle_url('/competency/user_competency_in_course.php', [
+                        'userid' => $userid, 
+                        'competencyid' => $compid,
+                        'courseid' => $course->id
+                    ]);
+
+                    $all_tracked_competencies[$compid . '_c_' . $course->id] = [
+                        'name' => format_string($competency->get('shortname')),
+                        'proficient' => $is_proficient,
+                        'context' => format_string($course->shortname),
+                        'context_class' => 'cw-ctx-course',
+                        'url' => $deeplink->out(false)
+                    ];
+                }
+            }
+        } catch (Exception $e) {}
+
+        // --- METRICS PROCESSING LOGIC ---
+        $totalcompetencies = count($all_tracked_competencies);
+        $earnedcompetencies = 0;
+        $itemsdata = [];
+
+        foreach ($all_tracked_competencies as $item) {
+            if ($item['proficient']) {
                 $earnedcompetencies++;
             }
 
-            try {
-                $competency = new \core_competency\competency($uc->get('competencyid'));
-                $name = format_string($competency->get('shortname'));
-            } catch (Exception $e) {
-                continue; // Skip execution if object instances are detached or missing
-            }
+            $status_text = $item['proficient'] 
+                ? get_string('proficient', 'block_competency_widget') 
+                : get_string('notproficient', 'block_competency_widget');
 
-            $badgeclass = $isproficient ? 'cw-badge-success' : 'cw-badge-muted';
-            $badgetext = $isproficient ? get_string('proficient', 'block_competency_widget') : get_string('notproficient', 'block_competency_widget');
-
-            $listitemshtml .= "
-            <div class='cw-list-item'>
-                <span class='cw-item-name' title='{$name}'>{$name}</span>
-                <span class='cw-badge {$badgeclass}'>{$badgetext}</span>
-            </div>";
+            $itemsdata[] = [
+                'name' => $item['name'],
+                'url' => $item['url'],
+                'context' => $item['context'],
+                'context_class' => $item['context_class'],
+                'status_class' => $item['proficient'] ? 'cw-badge-success' : 'cw-badge-warning',
+                'status_text' => $status_text
+            ];
         }
 
-        // Percentage and SVG mathematical calculations
         $percentage = $totalcompetencies > 0 ? round(($earnedcompetencies / $totalcompetencies) * 100) : 0;
         $radius = 40;
         $circumference = 2 * M_PI * $radius;
         $strokeoffset = $circumference - ($percentage / 100) * $circumference;
 
-        // Build object variables mapping localized information output
         $stringvars = new stdClass();
         $stringvars->earned = $earnedcompetencies;
         $stringvars->total = $totalcompetencies;
         $metastring = get_string('earnedof', 'block_competency_widget', $stringvars);
 
-        // Core component UI HTML
-        $html = "
-        <div class='cw-wrapper'>
-            <div class='cw-chart-container'>
-                <div class='cw-radial-wrapper'>
-                    <svg width='110' height='110' viewBox='0 0 100 100' style='transform: rotate(-90deg);'>
-                        <circle class='cw-svg-bg' cx='50' cy='50' r='{$radius}' stroke-width='8' fill='transparent'/>
-                        <circle class='cw-svg-progress' cx='50' cy='50' r='{$radius}' stroke-width='8' fill='transparent'
-                                stroke-dasharray='{$circumference}' 
-                                stroke-dashoffset='{$strokeoffset}'/>
-                    </svg>
-                    <div class='cw-radial-value'>{$percentage}%</div>
-                </div>
-                <div class='cw-meta'>{$metastring}</div>
-            </div>
-            
-            <div class='cw-list-container'>
-                " . (!empty($listitemshtml) ? $listitemshtml : "<div class='text-muted text-center' style='font-size:13px;'>No tracked competencies assigned.</div>") . "
-            </div>
-        </div>
-        ";
+        $templatevars = [
+            'uniqid' => uniqid('cw-widget-'),
+            'radius' => $radius,
+            'circumference' => $circumference,
+            'strokeoffset' => $strokeoffset,
+            'percentage' => $percentage,
+            'metastring' => $metastring,
+            'items' => $itemsdata
+        ];
 
-        // Modern React-Component Scoped Styling System (safely namespaced with .cw-)
-        $css = "
-        <style>
-            .cw-wrapper {
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                color: #1e293b;
-            }
-            .cw-chart-container {
-                text-align: center;
-                margin-bottom: 16px;
-                padding-bottom: 16px;
-                border-bottom: 1px solid #f1f5f9;
-            }
-            .cw-radial-wrapper {
-                position: relative;
-                width: 110px;
-                height: 110px;
-                margin: 0 auto 8px auto;
-            }
-            .cw-radial-value {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                font-size: 20px;
-                font-weight: 700;
-                color: #0f172a;
-            }
-            .cw-svg-bg {
-                stroke: #f1f5f9;
-            }
-            .cw-svg-progress {
-                stroke: #2563eb; /* Tailwinds Royal Blue */
-                stroke-linecap: round;
-                transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            }
-            .cw-meta {
-                font-size: 13px;
-                color: #64748b;
-                font-weight: 500;
-            }
-            .cw-list-container {
-                max-height: 220px;
-                overflow-y: auto;
-                padding-right: 4px;
-            }
-            .cw-list-item {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 8px 12px;
-                margin-bottom: 6px;
-                background: #f8fafc;
-                border-radius: 8px;
-                border: 1px solid #e2e8f0;
-                font-size: 12px;
-            }
-            .cw-list-item:hover {
-                background: #f1f5f9;
-            }
-            .cw-item-name {
-                font-weight: 500;
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
-                margin-right: 12px;
-            }
-            .cw-badge {
-                padding: 2px 8px;
-                border-radius: 12px;
-                font-size: 10px;
-                font-weight: 600;
-                white-space: nowrap;
-            }
-            .cw-badge-success {
-                background: #dcfce7;
-                color: #15803d;
-            }
-            .cw-badge-muted {
-                background: #e2e8f0;
-                color: #475569;
-            }
-        </style>
-        ";
+        $cache->set($cachekey, $templatevars);
 
-        $this->content->text = $css . $html;
+        $this->render_widget_ui($templatevars);
         return $this->content;
     }
 
     /**
-     * Explicit layout definitions. Dictates where block instances can live.
+     * Executes the Mustache template engine renderer natively.
      */
+    private function render_widget_ui($templatevars) {
+        global $OUTPUT;
+        
+        // Render structure directly onto the output layer
+        $this->content->text = $OUTPUT->render_from_template('block_competency_widget/widget_content', $templatevars);
+    }
+
     public function applicable_formats() {
         return array('all' => true);
     }
