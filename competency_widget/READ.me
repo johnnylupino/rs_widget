@@ -1,45 +1,57 @@
-Development Summary Report: competency_widget Refactoring
-This report provides a concise breakdown of the architectural, functional, and performance optimizations applied to the Moodle Competency Widget Block during today's development session. The plugin has been successfully refactored from a basic monolithic script into a modern, production-grade Moodle component.
+## What the Widget Does
 
-1. Architectural Evolution & Refactoring
-Separation of Concerns (MVC Pattern): Completely decoupled the backend PHP business logic from the presentation layer. Hardcoded HTML and CSS strings were entirely removed from block_competency_widget.php.
+The **Competency Widget** is a visual dashboard block for Moodle that helps students track their skill progress at a glance. Instead of long text lists, it uses an animated circular chart to display an overall completion percentage and organizes individual skills into a clean 3-column list.
 
-Mustache Templating Engine: Introduced templates/widget_content.mustache to handle the DOM layout natively via Moodle's core rendering engine.
+---
 
-External Stylesheet Optimization: Shifted all layout definitions into a standalone styles.css file in the plugin root. This enables browser-side caching and automated minification by Moodle's theme manager.
+## Supported Contexts
 
-2. Functional & Context-Aware Enhancements
-Multi-Pipeline Data Aggregation: Upgraded the data layer to concurrently fetch both site-wide Learning Plans and active Course Enrollments.
+The block tracks and displays skills across **three distinct context layers** depending on where it is placed on the site:
 
-Dynamic Context Filtering: Programmed the block to recognize its environment layout:
+* **Learning Plans (Global Profile):** Displays high-level professional goals assigned to a user's master account profile.
+* **Courses (Classroom Context):** Automatically adapts to its location. On the main Dashboard, it aggregates all enrolled courses. Inside a specific course page, it filters the view to show *only* the skills tied to that active classroom.
+* **Activities (Granular Tasks):** Drills down to individual interactive items inside a course—such as a specific Quiz, Assignment, or Forum—that have been explicitly mapped to a competency.
 
-Dashboard Mode: Aggregates and displays all site-wide tracking items.
+---
 
-Course Mode: Automatically detects the active course page and cleanses the view to isolate only the competencies mapped to that specific classroom context.
+## The Badges Explained
 
-Deep Deep-Linking: Replaced static text labels with dynamic, context-aware Moodle hyperlinks (moodle_url), routing users directly to their detailed competency profiles or course tracking summaries upon clicking.
+Each row in the widget is cleanly split into three parts (Name, Context, Status) to fit perfectly inside narrow sidebars:
 
-3. UI, Layout, & Sidebar Resilience
-Dual-Badge Dashboard Layout: Expanded the item tracking cards to render a cleaner dual-marker interface:
+### Context Badges (The Source)
+Identifies exactly where the skill requirement is being tracked. Long names automatically truncate with an ellipsis (`...`) and reveal their full title on mouse-hover.
+* **Learning Plan:** Sourced from global profile templates.
+* **Course Shortname:** Sourced from a classroom structure (e.g., `MATH-101`).
+* **Activity Name:** Sourced from a specific interactive task (e.g., `Final Exam Quiz`).
 
-Status Badge: Displays an active state marker using language-string mappings (Proficient or In Progress).
+### Progress Status Badges
+Indicates the user's current standing with that specific target objective.
+* **Proficient:** The milestone or grading criteria have been successfully met, and the skill is officially earned.
+* **In Progress:** The competency is assigned to the student, but the proficiency criteria have not yet been achieved.
 
-Context Badge: Displays where the skill requirement originates (Learning Plan or the specific Course Shortname).
+---
 
-Sidebar Fluid Resiliency: Resolved a layout defect where long course titles or competency descriptions caused container breakouts and horizontal scrollbars in narrow sidebars.
+## How Progress is Computed
 
-Ellipsis & Native Tooltips: Implemented defensive CSS Flexbox rules (min-width: 0, flex-shrink: 0) and relative capping definitions (max-width: 75px). Extra-long text strings now truncate gracefully with a trailing ellipsis (...) while retaining full-text readouts natively on mouse-hover via the HTML title attribute.
+The metric calculations happen purely on the server side using a multi-step pipeline before rendering the visual chart:
 
-4. Performance Engineering & Technical Bug Fixes
-Ad-Hoc Request Caching Engine: Resolved a critical Moodle system deadlock exception (The requested cache definition does not exist) by moving away from database-dependent cache configurations. Implemented an in-memory ad-hoc cache using cache::make_from_params() under MODE_REQUEST, reducing database strain across a single page lifecycle without requiring forced version-upgrade hooks.
+### 1. Data Collection & Unique Indexing
+The block scans all three context pipelines. To accurately represent the user's true workload, the same competency is tracked as a separate unique requirement if it exists in different contexts (e.g., tracking a "Communication" skill inside Course A vs. Course B).
 
-Defensive Type-Cast Mapping: Fixed a silent execution failure where the block rendered empty despite data existing. Patched the core loop with defensive is_object() mapping checks to correctly catch Moodle API data types (stdClass variations vs. associative arrays).
+### 2. Percentage Calculation
+The system counts the total number of unique tracking rows generated versus how many of those rows have an active `proficiency` status set to true.
 
-Internationalization Engine Sync: Replaced remaining hardcoded English text strings with Moodle's global localization method (get_string()), fully aligning the controller logic with the placeholder design configuration inside your lang/en/ translation strings file.
+$$\text{Progress Percentage} = \text{round}\left( \frac{\text{Earned Competencies}}{\text{Total Tracked Rows}} \times 100 \right)$$
 
-5. Pure CSS SVG Chart Stabilization
-Elimination of JS Race Conditions: Discovered that asynchronous page loading loops on Moodle dashboards caused the progress ring to experience timing dropouts (remaining gray).
+### 3. SVG Radial Graph Math
+The visual ring utilizes SVG stroke properties to draw the blue progress line. Based on a fixed circle radius ($r = 40$), the core circumference ($C$) is calculated:
 
-Zero-Dependency Approach: Safely removed the legacy AMD JavaScript module layer (amd/src/init.js) entirely. The exact $strokeoffset metric is now injected directly into the SVG container properties from the server side on render.
+$$C = 2 \times \pi \times 40 \approx 251.33$$
 
-Hardware-Accelerated Animation: Integrated a lightweight CSS @keyframes animation loop that smoothly transitions the progress ring from 0% up to the exact completion metric instantly upon page mounting.
+To determine how much of the blue ring should be hidden or shown, the backend computes the exact stroke dash offset:
+
+$$\text{Stroke Offset} = C - \left( \frac{\text{Progress Percentage}}{100} \times C \right)$$
+
+* At **0% progress**, the offset equals $251.33$ (completely hidden/gray).
+* At **100% progress**, the offset equals $0$ (the blue ring is completely drawn).
+* This calculated offset value is injected directly into the HTML structure, allowing a hardware-accelerated CSS transition to smoothly animate the ring when the page loads.
