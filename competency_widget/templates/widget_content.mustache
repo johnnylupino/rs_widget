@@ -1,6 +1,6 @@
 {{!
     @template block_competency_widget/widget_content
-    Template for rendering the React-style competency tracking UI with sidebar optimization.
+    Template for rendering the React-style competency tracking UI with a clean 3-part layout.
 }}
 <div class="cw-wrapper" id="{{uniqid}}">
     <div class="cw-chart-container">
@@ -20,10 +20,10 @@
         {{#items}}
             <div class="cw-list-item">
                 <a href="{{url}}" class="cw-item-name" title="{{name}}">{{name}}</a>
-                <div class="cw-badge-group">
-                    <span class="cw-badge {{context_class}}" title="{{context}}">{{context}}</span>
-                    <span class="cw-badge {{status_class}}">{{status_text}}</span>
-                </div>
+                
+                <span class="cw-badge {{context_class}} cw-item-context-badge" title="{{context}}">{{context}}</span>
+                
+                <span class="cw-badge {{status_class}} cw-item-status-badge">{{status_text}}</span>
             </div>
         {{/items}}
         {{^items}}

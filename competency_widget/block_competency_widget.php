@@ -1,7 +1,7 @@
 <?php
 /**
  * Competency Widget Block Controller.
- * Fully refactored to support Mustache layouts, AMD UI, MUC caching, and deep context awareness.
+ * Fully refactored to support Mustache layouts, MUC caching, and precise 3-tier deep linking.
  */
 
 defined('MOODLE_INTERNAL') || die();
@@ -37,7 +37,7 @@ class block_competency_widget extends block_base {
 
         // Performance MUC Cache Pipeline Optimization (Ad-hoc)
         $cache = cache::make_from_params(cache_store::MODE_REQUEST, 'block_competency_widget', 'competency_metrics');
-        $cachekey = 'user_metrics_' . $userid . '_course_' . $this->page->course->id;
+        $cachekey = 'user_metrics_3tier_linked_' . $userid . '_course_' . $this->page->course->id;
         $cacheddata = $cache->get($cachekey);
 
         if ($cacheddata !== false) {
@@ -58,9 +58,9 @@ class block_competency_widget extends block_base {
                         $competency = new \core_competency\competency($uc->get('competencyid'));
                         $compid = $competency->get('id');
                         
-                        $deeplink = new moodle_url('/competency/user_competency.php', [
-                            'userid' => $userid, 
-                            'competencyid' => $compid
+                        // FIXED: Deep link maps directly to the user's Learning Plans dashboard overview
+                        $deeplink = new moodle_url('/admin/tool/lp/plans.php', [
+                            'userid' => $userid
                         ]);
 
                         $all_tracked_competencies[$compid . '_lp'] = [
@@ -77,7 +77,7 @@ class block_competency_widget extends block_base {
             } catch (Exception $e) {}
         }
 
-        // --- PIPELINE 2: Course Configurations ---
+        // --- PIPELINE 2: Course & Activity Configurations ---
         try {
             $courses_to_scan = [];
             if ($is_course_context) {
@@ -89,8 +89,8 @@ class block_competency_widget extends block_base {
             foreach ($courses_to_scan as $course) {
                 $course_comps = \core_competency\api::list_course_competencies($course->id);
                 foreach ($course_comps as $cc_map) {
-                    // FIXED: Defensive object/array check to prevent data loading dropouts
                     $competency = is_object($cc_map) ? $cc_map->competency : $cc_map['competency'];
+                    
                     if (!$competency) {
                         continue;
                     }
@@ -99,12 +99,12 @@ class block_competency_widget extends block_base {
                     $user_course_comp = \core_competency\api::get_user_competency_in_course($course->id, $userid, $compid);
                     $is_proficient = $user_course_comp ? (bool)$user_course_comp->get('proficiency') : false;
 
-                    $deeplink = new moodle_url('/competency/user_competency_in_course.php', [
-                        'userid' => $userid, 
-                        'competencyid' => $compid,
-                        'courseid' => $course->id
+                    // FIXED: Deep link routes straight to the parent Course landing page
+                    $deeplink = new moodle_url('/course/view.php', [
+                        'id' => $course->id
                     ]);
 
+                    // Context A: Course Entry
                     $all_tracked_competencies[$compid . '_c_' . $course->id] = [
                         'name' => format_string($competency->get('shortname')),
                         'proficient' => $is_proficient,
@@ -112,6 +112,51 @@ class block_competency_widget extends block_base {
                         'context_class' => 'cw-ctx-course',
                         'url' => $deeplink->out(false)
                     ];
+
+                    // Context B: Standalone Mapped Activities inside the course
+                    try {
+                        $coursemodules = \core_competency\api::list_course_modules_using_competency($compid, $course->id);
+                        if (!empty($coursemodules)) {
+                            foreach ($coursemodules as $cm) {
+                                $cmname = '';
+                                $cmid = 0;
+                                
+                                if (is_object($cm)) {
+                                    $cmid = isset($cm->id) ? $cm->id : (method_exists($cm, 'get') ? $cm->get('id') : 0);
+                                    if (isset($cm->name)) {
+                                        $cmname = $cm->name;
+                                    } else if (method_exists($cm, 'get_formatted_name')) {
+                                        $cmname = $cm->get_formatted_name();
+                                    }
+                                } else if (is_array($cm)) {
+                                    $cmid = isset($cm['id']) ? $cm['id'] : 0;
+                                    $cmname = isset($cm['name']) ? $cm['name'] : '';
+                                }
+
+                                if (empty($cmname) && !empty($cmid)) {
+                                    try {
+                                        $modinfo = get_fast_modinfo($course->id);
+                                        if (isset($modinfo->cms[$cmid])) {
+                                            $cmname = $modinfo->cms[$cmid]->name;
+                                        }
+                                    } catch (Exception $modex) {}
+                                }
+
+                                if (empty($cmname)) {
+                                    $cmname = "Activity #" . $cmid;
+                                }
+
+                                // FIXED: Activity competency deep links route directly to the parent course page layout
+                                $all_tracked_competencies[$compid . '_cm_' . $cmid] = [
+                                    'name' => format_string($competency->get('shortname')),
+                                    'proficient' => $is_proficient, 
+                                    'context' => format_string($cmname),
+                                    'context_class' => 'cw-ctx-activity',
+                                    'url' => $deeplink->out(false)
+                                ];
+                            }
+                        }
+                    } catch (Exception $subex) {}
                 }
             }
         } catch (Exception $e) {}
@@ -166,13 +211,8 @@ class block_competency_widget extends block_base {
         return $this->content;
     }
 
-    /**
-     * Executes the Mustache template engine renderer natively.
-     */
     private function render_widget_ui($templatevars) {
         global $OUTPUT;
-        
-        // Render structure directly onto the output layer
         $this->content->text = $OUTPUT->render_from_template('block_competency_widget/widget_content', $templatevars);
     }
 
